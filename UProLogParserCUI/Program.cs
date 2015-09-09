@@ -11,13 +11,13 @@ namespace UProLogParserCUI
 {
     class Program
     {
-        private static readonly string[] exeptions = new[] { "Exception: DbEntityValidationException", "Exception: EnrichException" };
+        private static readonly string[] _exeptions = new[] { "Exception: DbEntityValidationException", "Exception: EnrichException" };
         private const string errorDataPresenceMarker = "ErrorData";
         static void Main(string[] args)
         {
             if (!args.Any())
             {
-                Console.WriteLine("Target dir is not specified. Use format parser.exe [path1] [path 2]");
+                Console.WriteLine("Target dir is not specified. Use format: parser.exe [path1] [path 2]");
                 return;
             }
 
@@ -33,7 +33,7 @@ namespace UProLogParserCUI
                 .MapReduce(
                     src =>
                         src
-                        .Where(x => exeptions.Any(ex => x.Contains(ex)) && x.Contains(errorDataPresenceMarker))
+                        .Where(x => _exeptions.Any(ex => x.Contains(ex)) && x.Contains(errorDataPresenceMarker))
                         .Select(block => GetTextByLine(block).FirstOrDefault(line => line.StartsWith("AdditionalInfo")))
                         .Select(s => JsonConvert.DeserializeObject<AdditionalInfo>(CleanJsonObjectString(s))),
                     i => i.ErrorData,
@@ -84,18 +84,6 @@ namespace UProLogParserCUI
         {
             int indexOfFirstCurlyBracket = dirtyString.IndexOf('{');
             return dirtyString.Substring(indexOfFirstCurlyBracket);
-        }
-
-        private static string ReadFile(string path)
-        {
-            Char[] buffer;
-
-            using (var sr = new StreamReader(path))
-            {
-                buffer = new Char[(int)sr.BaseStream.Length];
-                sr.Read(buffer, 0, (int)sr.BaseStream.Length);
-            }
-            return new StringBuilder().Append(buffer).ToString();
         }
 
         private static IEnumerable<string> ReadFileByBlock(string path)
