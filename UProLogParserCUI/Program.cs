@@ -126,36 +126,6 @@ namespace UProLogParserCUI
         }
     }
 
-    //static class FileHelperExtensions
-    //{
-    //    public static IEnumerable<string> ReadFileByBlock(this IEnumerable<string> paths)
-    //    {
-    //        var block = new StringBuilder();
-    //        string content;
-    //        foreach (var line in File.ReadLines(path))
-    //        {
-    //            if (Regex.Matches(line, @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})").Count == 0)
-    //            {
-    //                block.AppendLine(line);
-    //            }
-    //            else
-    //            {
-    //                content = block.ToString();
-    //                block = block.Clear();
-    //                if (!String.IsNullOrWhiteSpace(content))
-    //                {
-    //                    block.AppendLine(line);
-    //                    yield return content;
-    //                }
-    //                else
-    //                {
-    //                    block.AppendLine(line);
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
-
     static class PLINQExtensions
     {
         public static ParallelQuery<TResult> MapReduce<TSource, TMapped, TKey, TResult>(
