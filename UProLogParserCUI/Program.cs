@@ -41,7 +41,7 @@ namespace UProLogParserCUI
                 .Where(s => !string.IsNullOrWhiteSpace(s.Data))
                 .OrderByDescending(s => s.Count);
 
-            Console.WriteLine("Exeptions occuriong freqency statistics calculation started...");
+            Console.WriteLine("Exeptions occuring freqency statistics calculation started...");
 
 
             using (var fs = new FileStream(".\\output.txt", FileMode.Create))
