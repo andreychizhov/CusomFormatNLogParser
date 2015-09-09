@@ -14,7 +14,13 @@ namespace UProLogParserCUI
         private const string errorDataPresenceMarker = "ErrorData";
         static void Main(string[] args)
         {
-            string[] paths = args.Any() ? args : new[] { "d:\\files" };
+            if (!args.Any())
+            {
+                Console.WriteLine("Target dir is not specified. Use format parser.exe [path1] [path 2]");
+                return;
+            }
+
+            string[] paths = args;
             var c = paths.
                 SelectMany(p => Directory.EnumerateFiles(p, "*.log"))
                 .AsParallel()
@@ -30,11 +36,12 @@ namespace UProLogParserCUI
 
             Console.WriteLine("Exeptions occuriong freqency statistics calculation started...");
 
-            using (var sw = new StreamWriter(@"d:\files\output.txt"))
+            using (var fs = new FileStream(".\\output.txt", FileMode.Create))
+            using (var sw = new StreamWriter(fs, Encoding.UTF8))
             {
                 foreach (var item in c)
                 {
-                    sw.WriteLine("Error '{0}' occured in the log {1} {2}", item.Data.Trim(), item.Count, item.Count == 1 ? "time" : "times");
+                    sw.WriteLine("{0};{1}", item.Data.Trim(), item.Count);
                 }
             }
 
