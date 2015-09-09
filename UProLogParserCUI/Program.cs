@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace UProLogParserCUI
 {
@@ -22,35 +21,37 @@ namespace UProLogParserCUI
                 .MapReduce(
                     path => Regex.Split(ReadFile(path), @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})")
                         .Where(x => exeptions.Any(ex => x.Contains(ex)) && x.Contains(errorDataPresenceMarker))
-                        .Select(block => GetTextByLine(block).FirstOrDefault(line => line.Contains("AdditionalInfo")))
+                        .Select(block => GetTextByLine(block).FirstOrDefault(line => line.StartsWith("AdditionalInfo")))
                         .Select(s => JsonConvert.DeserializeObject<AdditionalInfo>(CleanJsonObjectString(s))),
                     i => i.ErrorData,
                     g => new[] { new { Data = g.Key, Count = g.Count() } })
-                    .Where(s => !string.IsNullOrWhiteSpace(s.Data))
-                    .OrderByDescending(s => s.Count);
+                .Where(s => !string.IsNullOrWhiteSpace(s.Data))
+                .OrderByDescending(s => s.Count);
 
-            Console.WriteLine("Error occuring frequency");
+            Console.WriteLine("Exeptions occuriong freqency statistics calculation started...");
 
-            //foreach (var item in c)
-            //{
-            //    Console.WriteLine(item);
-            //}
-
-            foreach (var item in c)
+            using (var sw = new StreamWriter(@"d:\files\output.txt"))
             {
-                Console.WriteLine("Error '{0}' occured in the log {1} {2}", item.Data, item.Count, item.Count == 1 ? "teme" : "times");
+                foreach (var item in c)
+                {
+                    sw.WriteLine("Error '{0}' occured in the log {1} {2}", item.Data.Trim(), item.Count, item.Count == 1 ? "time" : "times");
+                }
             }
-            //var fileContent = ReadFile(@"d:\files\2015-09-05.log");
 
-            //var s = Regex.Split(fileContent, @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})")
-            //    .Where(x => exeptions.Any(ex => x.Contains(ex)) && x.Contains(errorDataPresenceMarker));
-            //var oneFragment = GetTextByLine(s.FirstOrDefault()).FirstOrDefault(line => line.Contains("AdditionalInfo"));
-            //var cleanStr = CleanJsonObjectString(oneFragment);
-            //var info = JsonConvert.DeserializeObject<AdditionalInfo>(cleanStr);
+            Console.WriteLine("Completed. Please, check the output folder.");
+
             Console.ReadLine();
         }
 
         private static IEnumerable<string> GetTextByLine(string textBlock)
+        {
+            if (textBlock == null)
+                return Enumerable.Empty<string>();
+
+            return GetTextByLineImpl(textBlock);
+        }
+
+        private static IEnumerable<string> GetTextByLineImpl(string textBlock)
         {
             using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(textBlock)))
             using (var sr = new StreamReader(ms, true))
@@ -76,27 +77,11 @@ namespace UProLogParserCUI
             using (var sr = new StreamReader(path))
             {
                 buffer = new Char[(int)sr.BaseStream.Length];
-                sr.ReadAsync(buffer, 0, (int)sr.BaseStream.Length);
+                sr.Read(buffer, 0, (int)sr.BaseStream.Length);
             }
             return new StringBuilder().Append(buffer).ToString();
         }
     }
-
-    //static class StringHelperExtensions
-    //{
-    //    private static IEnumerable<string> GetTextByLine(this string textBlock)
-    //    {
-    //        using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(textBlock)))
-    //        using (var sr = new StreamReader(ms, true))
-    //        {
-    //            string line;
-    //            while ((line = sr.ReadLine()) != null)
-    //            {
-    //                yield return line;
-    //            }
-    //        }
-    //    }
-    //}
 
     static class PLINQExtensions
     {
