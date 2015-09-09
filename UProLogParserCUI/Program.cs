@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace UProLogParserCUI
 {
@@ -21,11 +22,17 @@ namespace UProLogParserCUI
             }
 
             string[] paths = args;
+
             var c = paths.
                 SelectMany(p => Directory.EnumerateFiles(p, "*.log"))
+                .Select(p => ReadFileByBlock(p))
                 .AsParallel()
+                .WithDegreeOfParallelism(Environment.ProcessorCount)
+                .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
+                .WithMergeOptions(ParallelMergeOptions.Default)
                 .MapReduce(
-                    path => Regex.Split(ReadFile(path), @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})")
+                    src =>
+                        src
                         .Where(x => exeptions.Any(ex => x.Contains(ex)) && x.Contains(errorDataPresenceMarker))
                         .Select(block => GetTextByLine(block).FirstOrDefault(line => line.StartsWith("AdditionalInfo")))
                         .Select(s => JsonConvert.DeserializeObject<AdditionalInfo>(CleanJsonObjectString(s))),
@@ -35,6 +42,7 @@ namespace UProLogParserCUI
                 .OrderByDescending(s => s.Count);
 
             Console.WriteLine("Exeptions occuriong freqency statistics calculation started...");
+
 
             using (var fs = new FileStream(".\\output.txt", FileMode.Create))
             using (var sw = new StreamWriter(fs, Encoding.UTF8))
@@ -46,6 +54,7 @@ namespace UProLogParserCUI
             }
 
             Console.WriteLine("Completed. Please, check the output folder.");
+
 
             Console.ReadLine();
         }
@@ -88,7 +97,64 @@ namespace UProLogParserCUI
             }
             return new StringBuilder().Append(buffer).ToString();
         }
+
+        private static IEnumerable<string> ReadFileByBlock(string path)
+        {
+            var block = new StringBuilder();
+            string content;
+            foreach (var line in File.ReadLines(path))
+            {
+                if (Regex.Matches(line, @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})").Count == 0)
+                {
+                    block.AppendLine(line);
+                }
+                else
+                {
+                    content = block.ToString();
+                    block = block.Clear();
+                    if (!String.IsNullOrWhiteSpace(content))
+                    {
+                        block.AppendLine(line);
+                        yield return content;
+                    }
+                    else
+                    {
+                        block.AppendLine(line);
+                    }
+                }
+            }
+        }
     }
+
+    //static class FileHelperExtensions
+    //{
+    //    public static IEnumerable<string> ReadFileByBlock(this IEnumerable<string> paths)
+    //    {
+    //        var block = new StringBuilder();
+    //        string content;
+    //        foreach (var line in File.ReadLines(path))
+    //        {
+    //            if (Regex.Matches(line, @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})").Count == 0)
+    //            {
+    //                block.AppendLine(line);
+    //            }
+    //            else
+    //            {
+    //                content = block.ToString();
+    //                block = block.Clear();
+    //                if (!String.IsNullOrWhiteSpace(content))
+    //                {
+    //                    block.AppendLine(line);
+    //                    yield return content;
+    //                }
+    //                else
+    //                {
+    //                    block.AppendLine(line);
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
 
     static class PLINQExtensions
     {
