@@ -17,7 +17,7 @@ namespace UProLogParserCUI
         {
             if (!args.Any())
             {
-                Console.WriteLine("Target dir is not specified. Use format: parser.exe [path1] [path 2]");
+                Console.WriteLine("Target dir is not specified. Use format: parser.exe [path1] [path 2] ... [path n]");
                 return;
             }
 
@@ -41,7 +41,7 @@ namespace UProLogParserCUI
                 .Where(s => !string.IsNullOrWhiteSpace(s.Data))
                 .OrderByDescending(s => s.Count);
 
-            Console.WriteLine("Exeptions occuring freqency statistics calculation started...");
+            Console.WriteLine("Exeptions occuring frequency statistics calculation started...");
 
 
             using (var fs = new FileStream(".\\output.txt", FileMode.Create))
@@ -88,10 +88,20 @@ namespace UProLogParserCUI
 
         private static IEnumerable<string> ReadFileByBlock(string path)
         {
+            var e = File.ReadLines(path).GetEnumerator();
+            if (!e.MoveNext()) return Enumerable.Empty<string>();
+            return ReadFileByBlockImpl(e);
+        }
+
+        private static IEnumerable<string> ReadFileByBlockImpl(IEnumerator<string> linesEnum)
+        {
+            var e = linesEnum;
             var block = new StringBuilder();
             string content;
-            foreach (var line in File.ReadLines(path))
+
+            while (true)
             {
+                string line = e.Current;
                 if (Regex.Matches(line, @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})").Count == 0)
                 {
                     block.AppendLine(line);
@@ -108,6 +118,19 @@ namespace UProLogParserCUI
                     else
                     {
                         block.AppendLine(line);
+                    }
+                }
+                if (e.MoveNext())
+                {
+                    continue;
+                }
+                else
+                {
+                    content = block.ToString();
+                    if (!String.IsNullOrWhiteSpace(content))
+                    {
+                        yield return content;
+                        break;
                     }
                 }
             }
