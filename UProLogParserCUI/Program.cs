@@ -35,8 +35,9 @@ namespace UProLogParserCUI
                         src
                         .Where(x => _exeptions.Any(ex => x.Contains(ex)) && x.Contains(errorDataPresenceMarker))
                         .Select(block => GetTextByLine(block).FirstOrDefault(line => line.StartsWith("AdditionalInfo")))
-                        .Select(s => JsonConvert.DeserializeObject<AdditionalInfo>(CleanJsonObjectString(s))),
-                    i => i.ErrorData,
+                        .Select(s => JsonConvert.DeserializeObject<AdditionalInfo>(CleanJsonObjectString(s)))
+                        .SelectMany(ai => ai.ErrorData.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries)),
+                    s => s,
                     g => new[] { new { Data = g.Key, Count = g.Count() } })
                 .Where(s => !string.IsNullOrWhiteSpace(s.Data))
                 .OrderByDescending(s => s.Count);
