@@ -11,7 +11,10 @@ namespace UProLogParserCUI
 {
     class Program
     {
-        private static readonly string[] _exeptions = new[] { "Exception: DbEntityValidationException", "Exception: EnrichException" };
+        private static readonly string[] _exeptions = new[]
+        {
+            "Exception: DbEntityValidationException", "Exception: EnrichException", "Exception: InvalidCalculationRequestException"
+        };
         private const string errorDataPresenceMarker = "ErrorData";
         static void Main(string[] args)
         {
