@@ -64,6 +64,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AdditionalInfo.cs" />
+    <Compile Include="LogProcessor.cs" />
+    <Compile Include="PLINQExtensions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
