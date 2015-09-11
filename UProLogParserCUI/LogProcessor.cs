@@ -14,7 +14,8 @@ namespace UProLogParserCUI
         {
             "Exception: DbEntityValidationException", "Exception: EnrichException", "Exception: InvalidCalculationRequestException"
         };
-        private const string errorDataPresenceMarker = "ErrorData";
+        private const string _errorDataPresenceMarker = "ErrorData";
+        private const string _occuringDatePattern = @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})";
 
         public void Process(string[] paths, string[] productMarkers, string outputFilename = "output")
         {
@@ -28,13 +29,13 @@ namespace UProLogParserCUI
                 .MapReduce(
                     src =>
                         src
-                        .Where(x => productMarkers.Any(m => x.Contains(m)) && _exeptions.Any(ex => x.Contains(ex)) && x.Contains(errorDataPresenceMarker))
-                        .Select(block => GetTextByLine(block).FirstOrDefault(line => line.StartsWith("AdditionalInfo")))
-                        .Select(s => JsonConvert.DeserializeObject<AdditionalInfo>(CleanJsonObjectString(s)))
-                        .SelectMany(ai => ai.ErrorData.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries)),
-                    s => s,
-                    g => new[] { new { Data = g.Key, Count = g.Count() } })
-                .Where(s => !string.IsNullOrWhiteSpace(s.Data))
+                        .Where(x => productMarkers.Any(m => x.Content.Contains(m)) && _exeptions.Any(ex => x.Content.Contains(ex)) && x.Content.Contains(_errorDataPresenceMarker))
+                        .Select(block => new { Block = block, Info = GetTextByLine(block.Content).FirstOrDefault(line => line.StartsWith("AdditionalInfo")) })
+                        .Select(s => new { Block = s.Block, Info = JsonConvert.DeserializeObject<AdditionalInfo>(CleanJsonObjectString(s.Info)) })
+                        .SelectMany(ai => ai.Info.ErrorData.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries), (p, m) => new { Data = m, FileName = p.Block.LogFilePath, Time = p.Block.OccurenceTime }),
+                    s => s.Data,
+                    g => new[] { new { Error = g.Key, Count = g.Count(), DataObj = (from obj in g orderby DateTime.Parse(obj.Time) descending select obj).First() } })
+                .Where(s => !string.IsNullOrWhiteSpace(s.Error))
                 .OrderByDescending(s => s.Count);
 
             using (var fs = new FileStream(".\\" + outputFilename + ".txt", FileMode.Create))
@@ -42,7 +43,7 @@ namespace UProLogParserCUI
             {
                 foreach (var item in c)
                 {
-                    sw.WriteLine("{0};{1}", item.Data.Trim(), item.Count);
+                    sw.WriteLine("{0};{1};{2};{3}", item.Error.Trim(), item.Count, item.DataObj.Time, item.DataObj.FileName);
                 }
             }
         }
@@ -74,14 +75,14 @@ namespace UProLogParserCUI
             return dirtyString.Substring(indexOfFirstCurlyBracket);
         }
 
-        private static IEnumerable<string> ReadFileByBlock(string path)
+        private static IEnumerable<LogEntryBlock> ReadFileByBlock(string path)
         {
             var e = File.ReadLines(path).GetEnumerator();
-            if (!e.MoveNext()) return Enumerable.Empty<string>();
-            return ReadFileByBlockImpl(e);
+            if (!e.MoveNext()) return Enumerable.Empty<LogEntryBlock>();
+            return ReadFileByBlockImpl(e, path);
         }
 
-        private static IEnumerable<string> ReadFileByBlockImpl(IEnumerator<string> linesEnum)
+        private static IEnumerable<LogEntryBlock> ReadFileByBlockImpl(IEnumerator<string> linesEnum, string path)
         {
             var e = linesEnum;
             var block = new StringBuilder();
@@ -90,7 +91,7 @@ namespace UProLogParserCUI
             while (true)
             {
                 string line = e.Current;
-                if (Regex.Matches(line, @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})").Count == 0)
+                if (Regex.Matches(line, _occuringDatePattern).Count == 0)
                 {
                     block.AppendLine(line);
                 }
@@ -101,7 +102,7 @@ namespace UProLogParserCUI
                     if (!String.IsNullOrWhiteSpace(content))
                     {
                         block.AppendLine(line);
-                        yield return content;
+                        yield return new LogEntryBlock(content, path, ExtractDateString(content));
                     }
                     else
                     {
@@ -117,11 +118,27 @@ namespace UProLogParserCUI
                     content = block.ToString();
                     if (!String.IsNullOrWhiteSpace(content))
                     {
-                        yield return content;
+                        yield return new LogEntryBlock(content, path, ExtractDateString(content));
                         break;
                     }
                 }
             }
+        }
+
+        private static string ExtractDateString(string textBlock)
+        {
+            var matches = Regex.Matches(textBlock, _occuringDatePattern);
+            if (matches.Count > 0)
+            {
+                var actualDate = matches.Cast<Match>().First().ToString();
+                DateTime time;
+                if (!DateTime.TryParse(actualDate, out time))
+                {
+                    throw new InvalidDataException("Incorect datetime string '" + actualDate + "'");
+                }
+                return actualDate;
+            }
+            throw new InvalidDataException(new StringBuilder().Append("Unable to find date and time in block: ").Append(textBlock).ToString());
         }
     }
 }
