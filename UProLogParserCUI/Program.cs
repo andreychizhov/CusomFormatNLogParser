@@ -21,12 +21,12 @@ namespace UProLogParserCUI
             }
             if (cla.Contains(_recursiveSubdidectoriesSearchKey))
             {
-                _processor = new LogProcessor(new RecursiveFileSearcher());
+                _processor = new LogProcessor(new RecursiveFileSearcher(), new ParserConfiguration());
                 cla.Remove(_recursiveSubdidectoriesSearchKey);
             }
             else
             {
-                _processor = new LogProcessor(new DefaultFileSearcher());
+                _processor = new LogProcessor(new DefaultFileSearcher(), new ParserConfiguration());
             }
 
             Console.WriteLine("Exeptions occuring frequency statistics calculation started...");

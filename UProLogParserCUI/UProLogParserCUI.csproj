@@ -54,6 +54,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -68,6 +69,7 @@
     <Compile Include="ILogFileSearcher.cs" />
     <Compile Include="LogEntryBlock.cs" />
     <Compile Include="LogProcessor.cs" />
+    <Compile Include="ParserConfiguration.cs" />
     <Compile Include="PLINQExtensions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

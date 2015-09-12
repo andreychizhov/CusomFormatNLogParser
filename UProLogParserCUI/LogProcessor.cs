@@ -11,18 +11,19 @@ namespace UProLogParserCUI
     public sealed class LogProcessor
     {
         private ILogFileSearcher _fileSearcher;
-
-        public LogProcessor(ILogFileSearcher fileSearcher)
-        {
-            _fileSearcher = fileSearcher;
-        }
-
-        private static readonly string[] _exeptions = new[]
-        {
-            "Exception: DbEntityValidationException", "Exception: EnrichException", "Exception: InvalidCalculationRequestException"
-        };
+        private ParserConfiguration _config;
+        private readonly string[] _exeptions;
+        private readonly IEnumerable<string> _errorIgnorePatterns;
         private const string _errorDataPresenceMarker = "ErrorData";
         private const string _occuringDatePattern = @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})";
+
+        public LogProcessor(ILogFileSearcher fileSearcher, ParserConfiguration config)
+        {
+            _fileSearcher = fileSearcher;
+            _config = config;
+            _exeptions = _config.CollectedExceptions.Select(ex => "Exception: " + ex).ToArray();
+            _errorIgnorePatterns = _config.IgnoreErrorsThatStartsWith;
+        }
 
         public void Process(IEnumerable<string> paths, string[] productMarkers, string outputFilename = "output")
         {
@@ -42,7 +43,7 @@ namespace UProLogParserCUI
                         .SelectMany(ai => ai.Info.ErrorData.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries), (p, m) => new { Data = m, FileName = p.Block.LogFilePath, Time = p.Block.GetOccurenceDateString(), ExName = p.Block.GetExceptionName() }),
                     s => s.Data,
                     g => new[] { new { Error = g.Key, Count = g.Count(), DataObj = (from obj in g orderby DateTime.Parse(obj.Time) descending select obj).First() } })
-                .Where(s => !string.IsNullOrWhiteSpace(s.Error))
+                .Where(s => !string.IsNullOrWhiteSpace(s.Error) && !_errorIgnorePatterns.Any(p => s.Error.StartsWith(p)))
                 .OrderByDescending(s => s.Count);
 
             using (var fs = new FileStream(".\\" + outputFilename + ".txt", FileMode.Create))
