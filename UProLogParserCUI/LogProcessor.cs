@@ -10,6 +10,13 @@ namespace UProLogParserCUI
 {
     public sealed class LogProcessor
     {
+        private ILogFileSearcher _fileSearcher;
+
+        public LogProcessor(ILogFileSearcher fileSearcher)
+        {
+            _fileSearcher = fileSearcher;
+        }
+
         private static readonly string[] _exeptions = new[]
         {
             "Exception: DbEntityValidationException", "Exception: EnrichException", "Exception: InvalidCalculationRequestException"
@@ -17,10 +24,10 @@ namespace UProLogParserCUI
         private const string _errorDataPresenceMarker = "ErrorData";
         private const string _occuringDatePattern = @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{4})";
 
-        public void Process(string[] paths, string[] productMarkers, string outputFilename = "output")
+        public void Process(IEnumerable<string> paths, string[] productMarkers, string outputFilename = "output")
         {
             var c = paths.
-                SelectMany(p => Directory.EnumerateFiles(p, "*.log"))
+                SelectMany(p => _fileSearcher.EnumerateFiles(p))
                 .Select(p => ReadFileByBlock(p))
                 .AsParallel()
                 .WithDegreeOfParallelism(Environment.ProcessorCount)

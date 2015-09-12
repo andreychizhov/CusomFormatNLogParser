@@ -64,11 +64,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AdditionalInfo.cs" />
+    <Compile Include="DefaultFileSearcher.cs" />
+    <Compile Include="ILogFileSearcher.cs" />
     <Compile Include="LogEntryBlock.cs" />
     <Compile Include="LogProcessor.cs" />
     <Compile Include="PLINQExtensions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RecursiveFileSearcher.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
